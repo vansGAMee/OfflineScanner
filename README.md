@@ -313,7 +313,3 @@ val flags = result and 0xFFFFFF
 *Пусть ваш сканер всегда будет быстрым, а данные — под контролем.*
 """
 
-with open("/mnt/agents/output/README.md", "w", encoding="utf-8") as f:
-    f.write(content)
-
-print("Saved successfully. File size:", len(content), "bytes")
