@@ -167,8 +167,8 @@ OfflineScanner/
 2. **Сгенерируйте тестовую базу**
 
    ```bash
-   python generate_flat.py
-   cp products.bin app/src/main/assets/
+    python build_real_db.py --csv en.openfoodfacts.org.products.csv
+    cp products.bin product_names.bin app/src/main/assets/
    ```
 
    Появится файл `products.bin` размером ~13 МБ.
