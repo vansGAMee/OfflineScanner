@@ -9,6 +9,9 @@
 
 **Молниеносный офлайн‑сканер продуктов для Android.**  
 Полный цикл поиска по 1 000 000 товаров менее чем за микросекунду, без единого байта сетевого трафика. Идеальное решение для складов, магазинов и полевых условий, где интернет недоступен или нестабилен.
+
+
+
 <img width="374" height="832" alt="image" src="https://github.com/user-attachments/assets/559b0a74-e5a1-4867-a52c-a723bfb47e82" /> <img width="378" height="827" alt="image" src="https://github.com/user-attachments/assets/a425bded-685e-4cde-a10b-e4da57c05ac8" />
 
 
