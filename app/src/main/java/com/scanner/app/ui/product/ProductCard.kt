@@ -17,7 +17,7 @@ import com.scanner.app.data.ProductFlags
 import com.scanner.app.R
 
 @Composable
-fun ProductCard(flags: ProductFlags?, modifier: Modifier = Modifier) {
+fun ProductCard(flags: ProductFlags?, modifier: Modifier = Modifier, productName: String = "") {
     AnimatedVisibility(
         visible = flags != null,
         enter = expandVertically() + fadeIn(),
@@ -29,6 +29,14 @@ fun ProductCard(flags: ProductFlags?, modifier: Modifier = Modifier) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    if (productName.isNotEmpty()) {
+                        Text(
+                            text = productName,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
                     Text(
                         text = if (it.rating > 0) stringResource(R.string.rating, it.rating)
                                else stringResource(R.string.rating, it.rating) + " (нет оценки)",

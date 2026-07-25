@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -23,8 +25,34 @@ import com.scanner.app.ui.scanner.CameraScreen
 import com.scanner.app.ui.scanner.CameraViewModel
 import com.scanner.app.ui.theme.AppTheme
 import java.io.File
+import java.nio.ByteBuffer
+import java.util.HashMap
 
 class MainActivity : ComponentActivity() {
+    private val productNames = HashMap<Long, String>()
+
+    private fun loadNames() {
+        try {
+            val nameFile = File(filesDir, "product_names.bin")
+            if (!nameFile.exists()) {
+                assets.open("product_names.bin").use { input ->
+                    nameFile.outputStream().use { output -> input.copyTo(output) }
+                }
+            }
+            val bytes = nameFile.readBytes()
+            val buf = ByteBuffer.wrap(bytes)
+            while (buf.remaining() >= 108) {
+                val barcode = buf.getLong()
+                val nameBytes = ByteArray(100)
+                buf.get(nameBytes)
+                val name = String(nameBytes, Charsets.UTF_8).trimEnd('\u0000')
+                productNames[barcode] = name
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Ошибка загрузки названий", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -42,6 +70,8 @@ class MainActivity : ComponentActivity() {
         }
         val dbPath = dbFile.absolutePath
 
+        loadNames()
+
         setContent {
             AppTheme {
                 val navController = rememberNavController()
@@ -55,18 +85,34 @@ class MainActivity : ComponentActivity() {
                         LaunchedEffect(barcode) {
                             barcode?.let { code ->
                                 val packed = NativeLib.lookupProduct(code, dbPath)
-                                if (packed != -1) navController.navigate("product/${packed}")
+                                if (packed != -1) {
+                                    navController.navigate("product/${packed}/${code}")
+                                }
                                 cameraViewModel.resetBarcode()
                             }
                         }
                         CameraScreen(viewModel = cameraViewModel, onBack = { navController.popBackStack() })
                     }
-                    composable("product/{raw}") { backStackEntry ->
+                    composable("product/{raw}/{barcode}") { backStackEntry ->
                         val raw = backStackEntry.arguments?.getString("raw")?.toIntOrNull() ?: 0
+                        val barcode = backStackEntry.arguments?.getString("barcode")?.toLongOrNull() ?: 0L
                         val flags = ProductFlags(raw)
-                        ProductCard(flags = flags)
-                        Button(onClick = { navController.popBackStack() }) {
-                            Text("← Назад")
+                        val name = productNames[barcode] ?: "Неизвестный продукт"
+                        Scaffold(
+                            bottomBar = {
+                                Button(
+                                    onClick = { navController.popBackStack() },
+                                    modifier = Modifier.fillMaxWidth().padding(8.dp)
+                                ) {
+                                    Text("← Назад к сканеру")
+                                }
+                            }
+                        ) { padding ->
+                            Box(modifier = Modifier.padding(padding)) {
+                                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                    ProductCard(flags = flags, productName = name)
+                                }
+                            }
                         }
                     }
                 }
@@ -79,6 +125,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(dbPath: String, onOpenScanner: () -> Unit) {
     var barcodeInput by remember { mutableStateOf("") }
     var productFlags by remember { mutableStateOf<ProductFlags?>(null) }
+    val isDark = isSystemInDarkTheme()
 
     Column(
         modifier = Modifier
@@ -102,8 +149,8 @@ fun MainScreen(dbPath: String, onOpenScanner: () -> Unit) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
                 cursorColor = MaterialTheme.colorScheme.primary
             )
         )
@@ -124,7 +171,7 @@ fun MainScreen(dbPath: String, onOpenScanner: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         if (productFlags != null) {
-            ProductCard(flags = productFlags!!)
+            ProductCard(flags = productFlags!!, productName = "Введённый товар")
         }
     }
 }
