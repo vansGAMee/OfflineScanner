@@ -92,25 +92,36 @@ LMDB тоже использует `mmap`, но добавляет слой тр
 ```text
 OfflineScanner/
 ├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── assets/
-│   │   │   │   └── .gitkeep              # products.bin генерируется отдельно
-│   │   │   ├── java/com/scanner/app/
-│   │   │   │   └── MainActivity.kt       # UI и точка входа
-│   │   │   ├── jniLibs/arm64-v8a/        # libproduct_lib.so после сборки
-│   │   │   ├── rust/
-│   │   │   │   ├── Cargo.toml
-│   │   │   │   └── src/
-│   │   │   │       └── lib.rs            # Ядро поиска и JNI
-│   │   │   └── res/...
-│   │   └── AndroidManifest.xml
-│   └── build.gradle.kts                  # Конфигурация сборки, интеграция Rust
-├── build.gradle.kts                      # Корневой конфиг
+│   ├── build.gradle.kts              # Gradle-конфиг приложения
+│   └── src/main/
+│       ├── AndroidManifest.xml       # Разрешения камеры
+│       ├── assets/
+│       │   ├── products.bin          # База штрихкодов (~328 КБ)
+│       │   └── product_names.bin     # Названия продуктов
+│       ├── jniLibs/arm64-v8a/
+│       │   └── libproduct_lib.so     # Скомпилированное Rust-ядро
+│       ├── java/com/scanner/app/
+│       │   ├── MainActivity.kt       # Главный экран, навигация, загрузка базы
+│       │   ├── data/
+│       │   │   ├── NativeLib.kt      # JNI-мост к Rust
+│       │   │   └── ProductFlags.kt   # Распаковка рейтинга и флагов
+│       │   └── ui/
+│       │       ├── theme/Theme.kt    # Фиолетовая тема Material 3
+│       │       ├── scanner/
+│       │       │   ├── CameraScreen.kt       # Экран сканера с анимированной рамкой
+│       │       │   └── CameraViewModel.kt    # StateFlow для распознанных штрихкодов
+│       │       └── product/
+│       │           └── ProductCard.kt        # Карточка продукта с иконками и светофором
+│       ├── res/
+│       │   ├── values/strings.xml
+│       │   └── values-ru/strings.xml
+│       └── rust/
+│           ├── Cargo.toml            # Зависимости Rust
+│           └── src/lib.rs            # Бинарный поиск по mmap, JNI-функция
+├── build_real_db.py                  # Скрипт генерации реальной базы из Open Food Facts
+├── build.gradle.kts                  # Корневой Gradle
 ├── settings.gradle.kts
-├── gradle.properties
-├── gradlew
-└── generate_flat.py                      # Генератор тестовой базы (Python)
+└── gradle.properties
 ```
 
 ---
