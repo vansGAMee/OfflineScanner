@@ -1,0 +1,16 @@
+<resources>
+    <string name="rating">Рейтинг: %d/100</string>
+    <string name="sugar">Сахар</string>
+    <string name="gluten">Глютен</string>
+    <string name="lactose">Лактоза</string>
+    <string name="palm_oil">Пальмовое масло</string>
+    <string name="hazardous_e">Опасные Е-добавки</string>
+    <string name="gmo">ГМО</string>
+    <string name="milk_fat_replacer">Заменитель молочного жира</string>
+    <string name="artificial_colors">Искусственные красители</string>
+    <string name="traffic_lights">Светофор</string>
+    <string name="sugar_level">Сахар: %d</string>
+    <string name="salt_level">Соль: %d</string>
+    <string name="fat_level">Жиры: %d</string>
+    <string name="no_data">Нет данных</string>
+</resources>

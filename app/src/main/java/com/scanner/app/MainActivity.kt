@@ -1,15 +1,27 @@
 package com.scanner.app
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.scanner.app.data.NativeLib
+import com.scanner.app.data.ProductFlags
+import com.scanner.app.ui.product.ProductCard
+import com.scanner.app.ui.scanner.CameraScreen
+import com.scanner.app.ui.scanner.CameraViewModel
+import com.scanner.app.ui.theme.AppTheme
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -17,110 +29,102 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val dbFile = File(filesDir, "products.bin")
-        if (!dbFile.exists()) {
-            assets.open("products.bin").use { input ->
-                dbFile.outputStream().use { output ->
-                    input.copyTo(output)
+        try {
+            if (!dbFile.exists()) {
+                assets.open("products.bin").use { input ->
+                    dbFile.outputStream().use { output -> input.copyTo(output) }
                 }
             }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Ошибка загрузки базы данных", Toast.LENGTH_LONG).show()
+            finish()
+            return
         }
         val dbPath = dbFile.absolutePath
 
         setContent {
-            MaterialTheme {
-                Surface {
-                    ScannerScreen(dbPath)
+            AppTheme {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "main") {
+                    composable("main") {
+                        MainScreen(dbPath = dbPath, onOpenScanner = { navController.navigate("scanner") })
+                    }
+                    composable("scanner") {
+                        val cameraViewModel: CameraViewModel = viewModel()
+                        val barcode by cameraViewModel.barcode.collectAsState()
+                        LaunchedEffect(barcode) {
+                            barcode?.let { code ->
+                                val packed = NativeLib.lookupProduct(code, dbPath)
+                                if (packed != -1) navController.navigate("product/${packed}")
+                                cameraViewModel.resetBarcode()
+                            }
+                        }
+                        CameraScreen(viewModel = cameraViewModel, onBack = { navController.popBackStack() })
+                    }
+                    composable("product/{raw}") { backStackEntry ->
+                        val raw = backStackEntry.arguments?.getString("raw")?.toIntOrNull() ?: 0
+                        val flags = ProductFlags(raw)
+                        ProductCard(flags = flags)
+                        Button(onClick = { navController.popBackStack() }) {
+                            Text("← Назад")
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-object NativeLib {
-    init {
-        System.loadLibrary("product_lib")
-    }
-
-    @JvmStatic
-    external fun lookupProduct(barcode: String, dbPath: String): Int
-}
-
-@Stable
-data class ProductFlags(val raw: Int) {
-    val rating: Int get() = (raw shr 24) and 0xFF
-    val sugar: Boolean    get() = (raw and (1 shl 0)) != 0
-    val gluten: Boolean   get() = (raw and (1 shl 1)) != 0
-    val lactose: Boolean  get() = (raw and (1 shl 2)) != 0
-    val palmOil: Boolean  get() = (raw and (1 shl 3)) != 0
-    val hazardousE: Boolean get() = (raw and (1 shl 4)) != 0
-}
-
 @Composable
-fun ScannerScreen(dbPath: String) {
+fun MainScreen(dbPath: String, onOpenScanner: () -> Unit) {
     var barcodeInput by remember { mutableStateOf("") }
     var productFlags by remember { mutableStateOf<ProductFlags?>(null) }
-    var scanning by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(24.dp))
+
+        Button(onClick = onOpenScanner, modifier = Modifier.fillMaxWidth()) {
+            Text("📷 Открыть сканер")
+        }
+
+        Spacer(Modifier.height(24.dp))
+
         OutlinedTextField(
             value = barcodeInput,
             onValueChange = { barcodeInput = it },
-            label = { Text("Штрих-код") },
+            label = { Text("Введите штрих-код") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary
+            )
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
                 val code = barcodeInput.trim()
                 if (code.isNotEmpty()) {
-                    scanning = true
-                    productFlags = null
-                    scope.launch(Dispatchers.IO) {
-                        try {
-                            val packed = NativeLib.lookupProduct(code, dbPath)
-                            if (isActive) {
-                                productFlags = if (packed != 0) ProductFlags(packed) else null
-                            }
-                        } catch (e: CancellationException) {
-                            // отмена — нормально
-                        } finally {
-                            scanning = false
-                        }
-                    }
+                    val packed = NativeLib.lookupProduct(code, dbPath)
+                    productFlags = if (packed != -1) ProductFlags(packed) else null
                 }
             },
-            enabled = !scanning,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (scanning) "Поиск..." else "Проверить продукт")
+            Text("Проверить продукт")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        productFlags?.let { flags ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Рейтинг: ${flags.rating}/100", style = MaterialTheme.typography.headlineSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FlagRow("Сахар", flags.sugar)
-                    FlagRow("Глютен", flags.gluten)
-                    FlagRow("Лактоза", flags.lactose)
-                    FlagRow("Пальмовое масло", flags.palmOil)
-                    FlagRow("Опасные E-добавки", flags.hazardousE)
-                }
-            }
+        if (productFlags != null) {
+            ProductCard(flags = productFlags!!)
         }
-    }
-}
-
-@Composable
-fun FlagRow(name: String, flagged: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        val color = if (flagged) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-        Text(text = "• $name", color = color, modifier = Modifier.padding(vertical = 2.dp))
     }
 }

@@ -51,7 +51,7 @@ fn lookup(barcode: u64) -> jint {
             let packed = ((rating & 0xFF) << 24) | (flags & 0xFF_FFFF);
             packed as i32
         }
-        None => 0,
+        None => -1,
     }
 }
 
@@ -70,7 +70,7 @@ pub extern "system" fn JNI_OnLoad(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_com_scanner_app_NativeLib_lookupProduct(
+pub extern "system" fn Java_com_scanner_app_data_NativeLib_lookupProduct(
     mut env: JNIEnv,
     _class: JClass,
     barcode: JString,
@@ -79,28 +79,28 @@ pub extern "system" fn Java_com_scanner_app_NativeLib_lookupProduct(
     if barcode.is_null() || db_path.is_null() {
         error!("lookupProduct called with null argument");
         let _ = env.throw_new("java/lang/IllegalArgumentException", "null argument");
-        return 0;
+        return -1;
     }
 
     let barcode_str = match env.get_string(&barcode) {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to get barcode string: {:?}", e);
-            return 0;
+            return -1;
         }
     };
     let barcode_rust = match barcode_str.to_str() {
         Ok(s) => s.trim(),
         Err(e) => {
             error!("Barcode is not valid UTF-8: {:?}", e);
-            return 0;
+            return -1;
         }
     };
     let barcode_num: u64 = match barcode_rust.parse() {
         Ok(n) => n,
         Err(e) => {
             error!("Cannot parse barcode '{}': {:?}", barcode_rust, e);
-            return 0;
+            return -1;
         }
     };
 
@@ -108,7 +108,7 @@ pub extern "system" fn Java_com_scanner_app_NativeLib_lookupProduct(
         Ok(s) => s,
         Err(e) => {
             error!("Failed to get db_path string: {:?}", e);
-            return 0;
+            return -1;
         }
     };
     let db_path_rust = match db_path_str.to_str() {
@@ -116,14 +116,14 @@ pub extern "system" fn Java_com_scanner_app_NativeLib_lookupProduct(
         Err(_) => {
             error!("db_path is not valid UTF-8");
             let _ = env.throw_new("java/lang/IllegalArgumentException", "path not UTF-8");
-            return 0;
+            return -1;
         }
     };
 
     if MMAP.get().is_none() {
         if let Err(e) = init_mmap(db_path_rust) {
             error!("Failed to mmap file at {}: {:?}", db_path_rust, e);
-            return 0;
+            return -1;
         }
     }
 

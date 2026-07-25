@@ -12,3 +12,6 @@
 *.so
 *.bin
 !app/src/main/assets/.gitkeep
+*.hprof
+en.openfoodfacts.org.products.csv
+*.bin

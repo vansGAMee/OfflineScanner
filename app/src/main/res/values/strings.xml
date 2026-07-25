@@ -1,3 +1,17 @@
 <resources>
-    <string name="app_name">OfflineScanner</string>
+    <string name="app_name">Product Scanner</string>
+    <string name="rating">Rating: %d/100</string>
+    <string name="sugar">Sugar</string>
+    <string name="gluten">Gluten</string>
+    <string name="lactose">Lactose</string>
+    <string name="palm_oil">Palm oil</string>
+    <string name="hazardous_e">Hazardous E-additives</string>
+    <string name="gmo">GMO</string>
+    <string name="milk_fat_replacer">Milk fat replacer</string>
+    <string name="artificial_colors">Artificial colors</string>
+    <string name="traffic_lights">Traffic lights</string>
+    <string name="sugar_level">Sugar: %d</string>
+    <string name="salt_level">Salt: %d</string>
+    <string name="fat_level">Fat: %d</string>
+    <string name="no_data">No data</string>
 </resources>
