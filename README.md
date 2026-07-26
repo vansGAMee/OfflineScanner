@@ -14,7 +14,9 @@
 
 
 
-![alt text](image.png)    ![alt text](image-1.png)
+<img width="374" height="832" alt="image" src="https://github.com/user-attachments/assets/9901b791-5897-4ac2-b7fc-4bd77d5f8d44" />  <img width="374" height="832" alt="image" src="https://github.com/user-attachments/assets/16fd8567-79f0-4932-82fd-5d5a6b8ac091" />
+
+
 
 ## Оглавление
 
